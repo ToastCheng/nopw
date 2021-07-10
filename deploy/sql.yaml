@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: sql-pv
+spec:
+  capacity:
+    storage: 4Gi
+  accessModes:
+  - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  hostPath:
+    path: /mnt/disk/data/sql
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: sql-vol
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 4Gi
+  storageClassName: local-storage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: sql
+    tier: backend
+  name: sql
+spec:
+  ports:
+    - port: 3306
+  selector:
+    app: sql
+    tier: backend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sql
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sql
+  template:
+    metadata:
+      labels:
+        app: sql
+        tier: backend
+    spec:
+      containers:
+        - name: sql
+          image: local/sql
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+          # command: 
+          # - |
+          #   /bin/bash -c "mysql --protocol=tcp --user=root --password=$(printenv | grep MYSQL_ROOT_PASSWORD | awk 'BEGIN {FS="="};{print $2}')  < /init.sql"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          env:
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: nopw-secret
+                  key: sql_user
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nopw-secret
+                  key: sql_password
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: nopw-secret
+                  key: sql_host
+          ports:
+            - name: sql
+              containerPort: 3306
+          volumeMounts:
+            - name: sql-data
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: sql-data
+          persistentVolumeClaim:
+            claimName: sql-vol

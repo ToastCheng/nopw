@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: fido
+    tier: backend
+  name: fido
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: fido
+    tier: backend
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fido
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fido
+  template:
+    metadata:
+      labels:
+        app: fido
+        tier: backend
+    spec:
+      containers:
+        - name: fido
+          image: local/fido:latest
+          imagePullPolicy: Never
+          # env:
+          #   - name: DB_USER
+          #     valueFrom:
+          #       secretKeyRef:
+          #         name: nopw-secret
+          #         key: sql_user
+          #   - name: DB_PASSWD
+          #     valueFrom:
+          #       secretKeyRef:
+          #         name: nopw-secret
+          #         key: sql_password
+          #   - name: DB_HOST
+          #     valueFrom:
+          #       secretKeyRef:
+          #         name: nopw-secret
+          #         key: sql_host
+          ports:
+            - name: fido
+              containerPort: 8080
+              protocol: TCP

@@ -1,0 +1,7 @@
+export const USER_ACTION = {
+  SET_EMAIL: 'user/SET_EMAIL',
+  SET_SIGNATURE: 'user/SET_SIGNATURE',
+  SET_CREDENTIAL_ID: 'user/SET_CREDENTIAL_ID',
+  SIGN_OUT: 'user/SIGN_OUT',
+  SET_USER: 'user/SET_USER',
+}
